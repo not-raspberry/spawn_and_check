@@ -13,8 +13,11 @@ REQUIREMENTS = [
 ]
 
 TEST_REQUIREMENTS = [
+    'requests>=2.6.0',
+    'click==4.0',
     'pylama==6.3.1',
     'pytest==2.7.0',
+    'mock==1.0.1',
 ]
 
 setup(
