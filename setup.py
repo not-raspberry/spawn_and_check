@@ -18,6 +18,7 @@ TEST_REQUIREMENTS = [
     'pylama==6.3.1',
     'pytest==2.7.0',
     'mock==1.0.1',
+    'port-for==0.3.1',
 ]
 
 setup(

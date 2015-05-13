@@ -112,7 +112,7 @@ class FakeHTTPRequestHandler(BaseHTTPRequestHandler):
 
 @fake_service.command()
 @click.option('--port', type=int, help='The port to bind and run test HTTP server on')
-@click.option('--path', type=str, help='URL path to respond with OK for (should begin with a slash)')
+@click.option('--path', type=str, default='/', help='URL path to respond with OK for (should begin with a slash)')
 def http(port, path):
     """Run a test HTTP server."""
     httpd = FakeHTTPServer((HOST, port), FakeHTTPRequestHandler, accepted_path=path)
