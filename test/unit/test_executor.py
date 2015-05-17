@@ -25,6 +25,18 @@ def test_execute_raises_if_shlex_wold_block():
         execute(None, [])
 
 
+def test_execute_accepts_strings(popen_mock):
+    """Check that if the command is a string, it is split in the shell way."""
+    string_command = 'command --arg "quoted_val" --arg2 not_quoted_val --flag -d=\'sth_else\''
+    list_command = ['command', '--arg', 'quoted_val', '--arg2', 'not_quoted_val', '--flag', '-d=sth_else']
+
+    execute(string_command, [], popen=popen_mock)
+    assert popen_mock.called_with(list_command)
+
+    execute(list_command, [], popen=popen_mock)
+    assert popen_mock.call_args_list[0] == popen_mock.call_args_list[1]
+
+
 @pytest.mark.parametrize('checks_count', range(2, 6))
 def test_execute_pre_checks_fail(invalid_check, checks_count):
     """Test if ``execute`` raises ``PreChecksFailed`` if pre-execute checks fail."""
