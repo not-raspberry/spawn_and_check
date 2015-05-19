@@ -9,7 +9,7 @@ from spawn_and_check.exceptions import PreChecksFailed, PostChecksFailed, Subpro
 
 FAKE_COMMAND = 'never to be called'
 """
-This command will fail
+This command will fail.
 
 It is used as a placeholder for commands that will never be executed because e.g. checks fail.
 """
@@ -59,13 +59,19 @@ def test_execute_pre_checks_defaults(popen_mock):
     assert popen_mock.called
 
 
-def test_execute_post_checks_fail(popen_mock):
+def test_execute_post_checks_fail(popen_mock, process_mock):
     """Check if ``PostChecksFailed`` is raised when post checks fail."""
     with pytest.raises(PostChecksFailed):
+        # One check that will fail as a post-check and pass as a negated pre-check.
         execute(FAKE_COMMAND, [lambda: False], timeout=0.1, popen=popen_mock)
 
+    assert process_mock.kill.call_count == 1
+
     with pytest.raises(PostChecksFailed):
+        # Separate failing post-check and passing pre-check.
         execute(FAKE_COMMAND, [lambda: not popen_mock.called], pre_checks=[lambda: True], timeout=0.1, popen=popen_mock)
+
+    assert process_mock.kill.call_count == 2
 
 
 def test_execute_popen_called(popen_mock):

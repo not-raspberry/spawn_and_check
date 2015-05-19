@@ -120,6 +120,7 @@ def execute(command, checks, pre_checks=None, timeout=10, interval=0.1, sleep_fn
             break
         sleep_fn(interval)
         if time.time() > start_time + timeout:
+            process.kill()
             raise PostChecksFailed(popen_command, failing_post_checks)
 
     return process
