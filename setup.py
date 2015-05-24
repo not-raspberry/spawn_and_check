@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding=utf-8
 """Project setup."""
 
 import os
@@ -13,7 +14,6 @@ REQUIREMENTS = [
 ]
 
 TEST_REQUIREMENTS = [
-    'requests>=2.6.0',
     'click==4.0',
     'pylama==6.3.1',
     'pytest==2.7.0',
@@ -27,11 +27,12 @@ setup(
     description="Spawn a process and wait until it's ready. So-called 'Executor'.",
     long_description=README,
     author='Michał Pawłowski',
-    author_email='blackmosesorg@gmail.com',
+    author_email='@'.join(['unittestablecode', 'gmail.com']),  # Secure against bots.
     url='',
     license="MIT",
     install_requires=REQUIREMENTS,
     tests_require=TEST_REQUIREMENTS,
+    extras_require={'tests': TEST_REQUIREMENTS},
     keywords=['executor'],
     packages=find_packages(),
     classifiers=[
