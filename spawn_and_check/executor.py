@@ -15,6 +15,7 @@ import logging
 from functools import wraps
 
 from spawn_and_check.exceptions import PreChecksFailed, PostChecksFailed, SubprocessExited
+from spawn_and_check.polling import TimedOut, wait_until
 
 
 log = logging.getLogger(__name__)
@@ -38,17 +39,6 @@ def negated(fn):
     negated_fn.__doc__ = 'Call ``%s`` and return negated return value of it.' % fn.__name__
 
     return negated_fn
-
-
-def execute_checks(checks):
-    """
-    Execute all provided checks and return failing ones.
-
-    :param list checks: list of check functions
-    :rtype: list
-    :return: list of failing check functions
-    """
-    return [check for check in checks if not check()]
 
 
 def parse_command(command):
@@ -106,26 +96,26 @@ def execute(command, checks, pre_checks=None, timeout=10, interval=0.1, sleep_fn
     if pre_checks is None:
         pre_checks = map(negated, checks)
 
-    failing_pre_checks = execute_checks(pre_checks)
-    if failing_pre_checks:
+    try:
+        wait_until(pre_checks, timeout=timeout, interval=interval, sleep_fn=sleep_fn)
+    except TimedOut as e:
         raise PreChecksFailed(
             'Pre-checks failed. Check for remains of the previously executed similar process.',
-            popen_command, failing_pre_checks)
+            popen_command, e)
 
     process = popen(popen_command)
-    start_time = time.time()
 
-    while True:
+    def check_if_process_is_still_running():
+        """Check if the process exited - if it did, raise an exception to immediately terminate the polling loop."""
         return_code = process.poll()  # Check if exited.
         if return_code is not None:
             raise SubprocessExited('The process exited with %s' % return_code, return_code)
+        return True
 
-        failing_post_checks = execute_checks(checks)
-        if not failing_post_checks:
-            break
-        sleep_fn(interval)
-        if time.time() > start_time + timeout:
-            process.kill()
-            raise PostChecksFailed(popen_command, failing_post_checks)
+    try:
+        wait_until(checks + [check_if_process_is_still_running], timeout=timeout, interval=interval, sleep_fn=sleep_fn)
+    except TimedOut as e:
+        process.kill()
+        raise PostChecksFailed(popen_command, 'Post-checks failed.', e)
 
     return process

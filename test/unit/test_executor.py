@@ -1,6 +1,7 @@
 """Executor tests."""
-import pytest
+from itertools import chain, cycle
 
+import pytest
 from mock import Mock, MagicMock
 
 from spawn_and_check import execute
@@ -11,7 +12,7 @@ FAKE_COMMAND = 'never to be called'
 """
 This command will fail.
 
-It is used as a placeholder for commands that will never be executed because e.g. checks fail.
+It is used as a placeholder for commands that will never be executed because checks fail or Popen is mocked.
 """
 
 
@@ -37,12 +38,31 @@ def test_execute_accepts_strings(popen_mock):
     assert popen_mock.call_args_list[0] == popen_mock.call_args_list[1]
 
 
-@pytest.mark.parametrize('checks_count', range(2, 6))
-def test_execute_pre_checks_fail(invalid_check, checks_count):
+@pytest.mark.parametrize('checks_count', range(1, 6))
+def test_execute_pre_checks_fail(popen_mock, invalid_check, checks_count):
     """Test if ``execute`` raises ``PreChecksFailed`` if pre-execute checks fail."""
     failing_pre_checks = [lambda: False] * checks_count
     with pytest.raises(PreChecksFailed):
+        # Exception coming from the pre-checks - we don't get to the point of running post-checks.
         execute(FAKE_COMMAND, [invalid_check], pre_checks=failing_pre_checks)
+
+    assert not popen_mock.called, 'After pre-checks failed, the command should not be executed.'
+
+
+@pytest.mark.parametrize('checks_count', range(1, 6))
+@pytest.mark.parametrize('initial_failures_count', range(0, 3))
+def test_execute_pre_checks_pass(popen_mock, checks_count, initial_failures_count):
+    """
+    Check if succeeding pre-checks cause the command to be executed.
+
+    Check if initially failing pre-checks are polled until they pass.
+    """
+    pre_checks = [
+        chain([lambda: False] * initial_failures_count, cycle([lambda: True])).next
+        for _ in range(checks_count)
+    ]
+    execute(FAKE_COMMAND, [lambda: True], pre_checks=pre_checks, popen=popen_mock)
+    assert popen_mock.called, 'The command should be executed.'
 
 
 def test_execute_pre_checks_defaults(popen_mock):

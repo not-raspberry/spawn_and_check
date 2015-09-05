@@ -1,4 +1,5 @@
-"""Executor exceptions."""
+"""Exceptions raised by the ``spawn_and_check.execute`` function."""
+from spawn_and_check.polling import TimedOut
 
 
 class ExecutorError(Exception):
@@ -11,14 +12,14 @@ class ChecksFailed(ExecutorError):
     """Raised when checks fail."""
 
 
-class PreChecksFailed(ChecksFailed):
+class PreChecksFailed(ChecksFailed, TimedOut):
 
     """Raised when the pre-execution checks fail."""
 
 
-class PostChecksFailed(ChecksFailed):
+class PostChecksFailed(ChecksFailed, TimedOut):
 
-    """Raised when post-execution checks fail."""
+    """Raised when the post-execution checks fail."""
 
 
 class SubprocessExited(ExecutorError):

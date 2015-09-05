@@ -9,7 +9,7 @@ import pytest
 import port_for
 
 from spawn_and_check import execute, check_tcp, check_http, check_unix
-from spawn_and_check.exceptions import PostChecksFailed
+from spawn_and_check.exceptions import PreChecksFailed, PostChecksFailed
 from spawn_and_check.polling import wait_until
 
 
@@ -103,13 +103,32 @@ def test_execute_process_killed():
     port = port_for.select_random()
     passing_check = check_tcp(port)
 
-    def failing_check():
+    def failing_check_for_testing_purposes():
         return False
 
     with pytest.raises(PostChecksFailed) as checks_failed:
-        execute([SERVICE, 'tcp', '--port', str(port)], [passing_check, failing_check], timeout=1)
+        execute([SERVICE, 'tcp', '--port', str(port)], [passing_check, failing_check_for_testing_purposes], timeout=1)
 
-    assert checks_failed.value[1] == [failing_check]
+    assert 'function failing_check_for_testing_purposes' in str(checks_failed.value)
 
     # The process will be killed and nothing will be listening on that port.
     wait_until(lambda: passing_check() is False)
+
+
+def test_execute_same_service_sequentially():
+    """Check if the pre-checks detect remains of the previous process."""
+    port = port_for.select_random()
+    command = [SERVICE, 'tcp', '--port', str(port)]
+
+    process = execute(command, [check_tcp(port)])
+
+    with pytest.raises(PreChecksFailed):
+        # The previous process still in place.
+        execute(command, [check_tcp(port)], timeout=1)
+
+    process.terminate()  # The process will take >2 seconds to tear down.
+
+    # Now, as the previous process is dead, the `execute` should succeed.
+    another_process = execute(command, [check_tcp(port)], timeout=5)
+
+    another_process.kill()
