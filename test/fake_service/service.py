@@ -9,8 +9,12 @@ between modern Linux distributions.
     Those are not good examples on how to write socket programs. In fact you rather shouldn't
     use sockets directly. The only purpose of the commands below is to be used in tests.
 """
+import os
 import socket
-import time
+import signal
+import errno
+from time import sleep
+from threading import Timer
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
 import click
@@ -23,7 +27,7 @@ BUFFER_SIZE = 1024
 @click.option('--delay', type=float, default=0.0, help='Number of seconds to sleep before each service is started')
 def fake_service(delay):
     """Run a service that performs an action detected by a tested checker or executor."""
-    time.sleep(delay)
+    sleep(delay)
 
 
 @fake_service.command()
@@ -47,13 +51,18 @@ def listen_stream(protocol_family, address_to_bind):
     stream_socket.listen(0)  # No backlog.
 
     while True:
-        connection, addr = stream_socket.accept()
-        print 'Connection from', addr
-        while True:
-            received = connection.recv(BUFFER_SIZE)
-            if not received:
-                break
-            print 'Received: %r' % received
+        try:
+            connection, addr = stream_socket.accept()
+            print 'Connection from', addr
+            while True:
+                received = connection.recv(BUFFER_SIZE)
+                if not received:
+                    break
+                print 'Received: %r' % received
+
+        except socket.error as e:
+            if e.errno != errno.EINTR:
+                raise
 
 
 @fake_service.command()
@@ -79,8 +88,12 @@ def udp(port):
     udp_socket.bind(('0.0.0.0', port))
 
     while True:
-        received, address = udp_socket.recvfrom(BUFFER_SIZE)
-        print 'Received: %r from %r' % (received, address)
+        try:
+            received, address = udp_socket.recvfrom(BUFFER_SIZE)
+            print 'Received: %r from %r' % (received, address)
+        except socket.error as e:
+            if e.errno != errno.EINTR:
+                raise
 
 
 class FakeHTTPServer(HTTPServer):
@@ -119,5 +132,23 @@ def http(port, path):
     httpd.serve_forever()
 
 
+def terminate_sloppily(signum, frame):
+    """
+    Terminate the process but... uhm... give me 2 seconds.
+
+    This is needed for testing executing the same service sequentially.
+    """
+    print "SIGTERM trapped but it's not like I'm going to exit now, oh no."
+
+    def do_exit():
+        print "OK, I'm exiting."
+        os._exit(1)  # Make the whole process exit, not just current thread.
+
+    exit_after_20_sec = Timer(2, do_exit)
+    exit_after_20_sec.start()
+
+
 if __name__ == '__main__':
+    print 'Fake service PID:', os.getpid()
+    signal.signal(signal.SIGTERM, terminate_sloppily)
     fake_service()
