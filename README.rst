@@ -1,8 +1,11 @@
 spawn_and_check
 ===============
 
+.. image:: https://travis-ci.org/not-raspberry/spawn_and_check.svg?branch=master
+    :target: https://travis-ci.org/not-raspberry/spawn_and_check
+
 Provide some checks, spawn a process and poll it until all checks pass.
-That way you'll know when the application really started working.
+That way you know when the application really starts working.
 
 Example
 -------

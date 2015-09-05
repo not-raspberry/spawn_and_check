@@ -68,7 +68,7 @@ def http_urlsplit(url):
     """
     Validate and split the URL into host, port, and path parts.
 
-    :param str url:
+    :param str url: URL with 'http' scheme
     :rtype: tuple
     :return: 3-tuple of strings: host, port and path
     """
@@ -104,7 +104,7 @@ def check_http(url, HTTPConnection=HTTPConnection):
     """
     def check_http():
         """
-        Try to send HTTP HEAD request to the address.
+        Try to send an HTTP HEAD request.
 
         :param str url:
         :rtype: bool

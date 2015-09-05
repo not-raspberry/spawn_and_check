@@ -24,7 +24,7 @@ def negated(fn):
     """
     Create a negated check function and set its metadata.
 
-    :param function fn:
+    :param function fn: function to create a negated version of
     :rtype: function
     :return: negated ``fn``
     """
@@ -53,15 +53,20 @@ def execute_checks(checks):
 
 def parse_command(command):
     """
-    If the command is a string, parse it using shlex.
+    Normalize the command to a list of arguments.
 
-    :param (str, list) command: shell command to execute
+    If the command is a string, parse it to a list using shlex. If a list - return it. If the command is None, raise
+    an exception.
+    Unicode behaviour will depend on your shell.
+
+    :param (basestring, list) command: shell command to execute
     :raise ValueError: if None was passed instead of a command, which wold trigger a de-facto bug in ``shlex``
     """
     if command is None:
         # We would normally assume the user of the function passes the right types but for this one we'll make
         # an exception. The behaviour of `shlex.split`, when passed a string is normal, but when passed None,
-        # it reads from standard input. Let's try not to think why such a strange behaviour was coded into stdlib.
+        # it reads from standard input. Let's try not to think why such a strange behaviour was coded into the standard
+        # library.
         raise ValueError('The command is None and that would cause shlex.split to read standard input.')
 
     if isinstance(command, basestring):
@@ -74,10 +79,10 @@ def execute(command, checks, pre_checks=None, timeout=10, interval=0.1, sleep_fn
     """
     Fire pre-checks, run the command and fire post-checks.
 
-    Pre-checks are to ensure that the previously executed process terminated. In general case, those can be negated
-    post-checks. They are ran once and are not polled/repeated. The purpose of post-checks (``checks``) is to ensure
-    e.g. if the application ran by the command fully started (e.g. opened an HTTP service, wrote 'Ready' to logs,
-    etc.).
+    Pre-checks are to ensure that the previously executed process terminated. In general case, they can be negated
+    post-checks. Pre-checks are ran once and are not polled/repeated. The purpose of post-checks (``checks``) is to
+    ensure e.g. that the application ran by the command fully started (e.g. opened an HTTP service, wrote 'Ready' to
+    logs, etc.).
     The command is ran through ``subprocess.Popen`` and while polling the checks, the ``subprocess.Popen`` object is
     checked for the exit status of the command. If the command exits, it counts as a failure to start the app.
 
