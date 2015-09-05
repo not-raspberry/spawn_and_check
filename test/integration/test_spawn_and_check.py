@@ -10,11 +10,11 @@ import port_for
 
 from spawn_and_check import execute, check_tcp, check_http, check_unix
 from spawn_and_check.exceptions import PostChecksFailed
-from test.wait import wait_until
+from spawn_and_check.polling import wait_until
 
 
 SERVICE = './test/fake_service/service.py'
-DELAYS = [0, 3, 5]  # Seconds before the service starts serving (lower bound).
+DELAYS = [0, 3, 5]  # Seconds until the service starts serving (lower bound).
 
 
 def test_execute_failing_checks():
