@@ -44,7 +44,7 @@ def test_execute_pre_checks_fail(popen_mock, invalid_check, checks_count):
     failing_pre_checks = [lambda: False] * checks_count
     with pytest.raises(PreChecksFailed):
         # Exception coming from the pre-checks - we don't get to the point of running post-checks.
-        execute(FAKE_COMMAND, [invalid_check], pre_checks=failing_pre_checks)
+        execute(FAKE_COMMAND, [invalid_check], pre_checks=failing_pre_checks, interval=0.1, timeout=0.1)
 
     assert not popen_mock.called, 'After pre-checks failed, the command should not be executed.'
 
