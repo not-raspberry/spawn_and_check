@@ -2,9 +2,7 @@
 from time import sleep, time
 from collections import Callable
 
-
-DEFAULT_INTERVAL = 0.1
-DEFAULT_TIMEOUT = 5
+from spawn_and_check.constants import DEFAULT_INTERVAL, DEFAULT_TIMEOUT
 
 
 class TimedOut(Exception):

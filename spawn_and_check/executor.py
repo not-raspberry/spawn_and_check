@@ -16,6 +16,7 @@ from functools import wraps
 
 from spawn_and_check.exceptions import PreChecksFailed, PostChecksFailed, SubprocessExited
 from spawn_and_check.polling import TimedOut, wait_until
+from spawn_and_check.constants import DEFAULT_INTERVAL, DEFAULT_TIMEOUT
 
 
 log = logging.getLogger(__name__)
@@ -65,7 +66,10 @@ def parse_command(command):
     return command
 
 
-def execute(command, checks, pre_checks=None, timeout=10, interval=0.1, sleep_fn=time.sleep, popen=subprocess.Popen):
+def execute(command,
+            checks, pre_checks=None,
+            interval=DEFAULT_INTERVAL, timeout=DEFAULT_TIMEOUT,
+            sleep_fn=time.sleep, popen=subprocess.Popen):
     """
     Fire pre-checks, run the command and fire post-checks.
 

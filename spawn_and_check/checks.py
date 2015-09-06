@@ -8,15 +8,16 @@ import socket
 from urlparse import urlsplit
 from httplib import HTTPConnection
 
-DEFAULT_TIMEOUT = 1.0  # sec
+from spawn_and_check.constants import TCP_TIMEOUT
 
 
-def check_tcp(port, host='127.0.0.1', timeout=DEFAULT_TIMEOUT):
+def check_tcp(port, host='127.0.0.1', timeout=TCP_TIMEOUT):
     """
     Create a TCP check function.
 
     :param int port:
-    :param str host: numeric hostname or a resolvable hostname (IPv4 or IPv6)
+    :param str host: IPv4/IPv6 address or a resolvable hostname
+    :param float timeout: connection timeout
     """
     def check_tcp():
         """
