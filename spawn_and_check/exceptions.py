@@ -22,6 +22,11 @@ class PostChecksFailed(ChecksFailed, TimedOut):
     """Raised when the post-execution checks fail."""
 
 
+class CannotTerminate(ChecksFailed, TimedOut):
+
+    """Raised when it's not possible to terminate the process."""
+
+
 class SubprocessExited(ExecutorError):
 
     """Raised if a process ended before all post-checks went OK."""

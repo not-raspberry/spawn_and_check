@@ -8,6 +8,7 @@ add some sleep to leave more resources for the booting application.
 
 With multiple check functions, we call them sequentially.
 """
+import os
 import time
 import shlex
 import subprocess
@@ -16,6 +17,7 @@ from functools import wraps
 
 from spawn_and_check.exceptions import PreChecksFailed, PostChecksFailed, SubprocessExited
 from spawn_and_check.polling import TimedOut, wait_until
+from spawn_and_check.killers import terminate_gracefully
 from spawn_and_check.constants import DEFAULT_INTERVAL, DEFAULT_TIMEOUT
 
 
@@ -68,27 +70,38 @@ def parse_command(command):
 
 def execute(command,
             checks, pre_checks=None,
+            kill_fn=terminate_gracefully,
             interval=DEFAULT_INTERVAL, timeout=DEFAULT_TIMEOUT,
             sleep_fn=time.sleep, popen=subprocess.Popen):
     """
     Fire pre-checks, run the command and fire post-checks.
 
-    Pre-checks are to ensure that the previously executed process terminated. In general case, they can be negated
-    post-checks. Pre-checks are ran once and are not polled/repeated. The purpose of post-checks (``checks``) is to
-    ensure e.g. that the application ran by the command fully started (e.g. opened an HTTP service, wrote 'Ready' to
-    logs, etc.).
-    The command is ran through ``subprocess.Popen`` and while polling the checks, the ``subprocess.Popen`` object is
-    checked for the exit status of the command. If the command exits, it counts as a failure to start the app.
+    Before running the command, pre-checks are executed to ensure that the environment is clean.
+    This is useful because if you try to run the same service twice, the second invocation may fail
+    (e.g. due to a port being occupied) while the checks succeed because they detect the existing
+    service.
 
-    :param (str, list) command: shell command to pass to ``subprocess.Popen``
+    The purpose of post-checks (``checks``) is to ensure e.g. that the application ran by the
+    command fully started (e.g. opened an HTTP service, wrote 'Ready' to logs, etc.).  The command
+    is ran through ``subprocess.Popen`` and while polling the checks, the ``subprocess.Popen``
+    object is checked for the exit status of the command. If the command exits, it counts as a
+    failure to start the app.
+
+    :param (str, list) command: shell command to pass to ``subprocess.Popen``. If it is a string,
+        will be parsed into a list with ``shlex.split``.
     :param list checks: list of check functions (signature: () -> bool)
-    :param (list, NoneType) pre_checks: list of checks fire before the command. If None, negated ``checks`` functions
-        will be used. They should return True if the command is clear to execute.
-    :param float timeout: time limit for executors
+    :param (list, NoneType) pre_checks: list of checks fire before the command. If None, negated
+        ``checks`` functions will be used. They should return True if the command is clear to
+        execute.
     :param float interval: time to sleep between checks
-    :param function sleep_fn: function to sleep, ``time.sleep`` by default. Pass ``gevent.sleep`` when working in
-        gevent environment.
-    :param type popen: thingy to use in place of subprocess.Popen
+    :param float timeout: time limit for pre-checks, post-checks and killers
+    :param function sleep_fn: function to sleep, ``time.sleep`` by default. Pass ``gevent.sleep``
+        when working in the gevent environment.
+    :param type popen: thingy to use in place of ``subprocess.Popen``. Feel free to pass
+        a ``functools.partial`` on ``subprocess.Popen`` that feeds some arguments.
+        ``popen`` will be called with the passed ``command`` and ``preexec_fn=os.setsid`` to set
+        a new group ID for the spawned process to make killing processes that spawn their children
+        easier. The latter also makes it crash under Windows.
     :rtype: subprocess.Popen
     :return: process handle
     :raise PreChecksFailed: if pre-checks failed
@@ -107,7 +120,7 @@ def execute(command,
             'Pre-checks failed. Check for remains of the previously executed similar process.',
             popen_command, e)
 
-    process = popen(popen_command)
+    process = popen(popen_command, preexec_fn=os.setsid)
 
     def check_if_process_is_still_running():
         """Check if the process exited - if it did, raise an exception to immediately terminate the polling loop."""
@@ -119,7 +132,7 @@ def execute(command,
     try:
         wait_until(checks + [check_if_process_is_still_running], timeout=timeout, interval=interval, sleep_fn=sleep_fn)
     except TimedOut as e:
-        process.kill()
+        kill_fn(process)
         raise PostChecksFailed(popen_command, 'Post-checks failed.', e)
 
     return process

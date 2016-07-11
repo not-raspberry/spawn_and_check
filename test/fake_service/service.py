@@ -24,7 +24,7 @@ BUFFER_SIZE = 1024
 
 
 @click.group()
-@click.option('--delay', type=float, default=0.0, help='Number of seconds to sleep before each service is started')
+@click.option('--delay', type=float, default=0.0, help='Number of seconds to sleep before the service is started')
 def fake_service(delay):
     """Run a service that performs an action detected by a tested checker or executor."""
     sleep(delay)
@@ -136,7 +136,8 @@ def terminate_sloppily(signum, frame):
     """
     Terminate the process but... uhm... give me 2 seconds.
 
-    This is needed for testing executing the same service sequentially.
+    This is needed for testing the case when the same service is executed just after its
+    termination.
     """
     print "SIGTERM trapped but it's not like I'm going to exit now, oh no."
 

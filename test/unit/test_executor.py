@@ -1,4 +1,11 @@
-"""Executor tests."""
+"""
+Executor function unit tests.
+
+Everything the executor function does interacts with the outside world.
+Thanks to the heavy use of dependency injection, it's possible to test it
+without patching. Stubbing, however, is extensive. So for tests that actually
+test something, see the integration suite.
+"""
 from itertools import chain, cycle
 
 import pytest
@@ -83,15 +90,17 @@ def test_execute_post_checks_fail(popen_mock, process_mock):
     """Check if ``PostChecksFailed`` is raised when post checks fail."""
     with pytest.raises(PostChecksFailed):
         # One check that will fail as a post-check and pass as a negated pre-check.
-        execute(FAKE_COMMAND, [lambda: False], timeout=0.1, popen=popen_mock)
+        killer_mock = Mock()
+        execute(FAKE_COMMAND, [lambda: False], kill_fn=killer_mock, timeout=0.1, popen=popen_mock)
 
-    assert process_mock.kill.call_count == 1
+    killer_mock.assert_called_once_with(process_mock)
 
     with pytest.raises(PostChecksFailed):
         # Separate failing post-check and passing pre-check.
-        execute(FAKE_COMMAND, [lambda: not popen_mock.called], pre_checks=[lambda: True], timeout=0.1, popen=popen_mock)
+        execute(FAKE_COMMAND, [lambda: not popen_mock.called], pre_checks=[lambda: True],
+                kill_fn=killer_mock, timeout=0.1, popen=popen_mock)
 
-    assert process_mock.kill.call_count == 2
+    assert killer_mock.call_count == 2
 
 
 def test_execute_popen_called(popen_mock):
