@@ -17,6 +17,7 @@ TEST_REQUIREMENTS = [
     'click==4.0',
     'pylama==6.3.1',
     'pytest==2.7.0',
+    'pytest-reorder==0.1.0',
     'mock==1.0.1',
     'port-for==0.3.1',
 ]
